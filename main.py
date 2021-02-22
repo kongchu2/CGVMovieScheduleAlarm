@@ -2,7 +2,6 @@ import requests
 import datetime
 import telegram
 import re
-from apscheduler.schedulers.blocking import BlockingScheduler
 from datetime import datetime, timedelta
 from bs4 import BeautifulSoup
 
@@ -83,16 +82,22 @@ class movieManager:
 
     def get_movie_schedule(self):
         for theater in self.theaters:
+            slider_dates = self.get_dates_by_slider(theater)
             for date in self.dates:
-                url = theater.url.replace('@', date.str)
-                for movie in self.movies:
-                    soup = getBSoup(url)
-                    title_list = soup.select('div.info-movie > a > strong')
-                    for title in title_list:
-                        title = title.text.strip()
-                        movie = movie.strip()
-                        if title == movie:
-                            theater.add_movie(title, date)
+                is_date_exist = False
+                for slider_date in slider_dates:
+                    if slider_date.compare(date) == 0:
+                        is_date_exist = True
+                if is_date_exist:
+                    url = theater.url.replace('@', date.str)
+                    for movie in self.movies:
+                        soup = getBSoup(url)
+                        title_list = soup.select('div.info-movie > a > strong')
+                        for title in title_list:
+                            title = title.text.strip()
+                            movie = movie.strip()
+                            if title == movie:
+                                theater.add_movie(title, date)
         return self.theaters
 
     def get_dates_by_slider(self, theater):
@@ -110,6 +115,7 @@ class movieManager:
 
     def add_dates_by_slider_arguAfterDate(self, theater, date):
         """ theater class, date class """
+        """ date 이후로 slider에 있는 모든 날짜를 추가합니다. """
         slider_date_list = self.get_dates_by_slider(theater)
         for slider_date in slider_date_list:
             if slider_date.compare(date) < 1:
@@ -137,13 +143,12 @@ class telegramBot:
                 message = message.replace('day', days[0:len(days)-1])
                 self.bot.sendMessage(self.chat_id, message)
         
-mm = movieManager()
-mm.add_movie('극장판 귀멸의 칼날-무한열차편')
-mm.add_date(date("2021",'02','13'))
-mm.add_theater(theater('용산CGV', '0013'))
+# mm = movieManager()
+# mm.add_movie('극장판 귀멸의 칼날-무한열차편')
+# mm.add_date(date("2021",'02','25'))
+# mm.add_theater(theater('판교CGV', '0181'))
 
-mm.add_dates_by_slider_arguAfterDate(mm.theaters[0], mm.dates[0])
-theaters = mm.get_movie_schedule()
+# theaters = mm.get_movie_schedule()
 
-bot = telegramBot()
-bot.send_movie_schedule(theaters)
+# bot = telegramBot()
+# bot.send_movie_schedule(theaters)
